@@ -1,23 +1,25 @@
 #!/bin/sh
-source ./func.cgi
+
+source /usr/scripts/common_functions.sh
+
+source ${WWW_PATH}/cgi-bin/func.cgi
 
 echo "Pragma: no-cache"
 echo "Cache-Control: max-age=0, no-store, no-cache"
 
-SCRIPT_HOME="/usr/controlscripts/"
 if [ -n "$F_script" ]; then
   script="${F_script##*/}"
-  if [ -e "$SCRIPT_HOME/$script" ]; then
+  if [ -e "$CONTROLSCRIPT_PATH/$script" ]; then
     case "$F_cmd" in
       start)
         echo "Content-type: text/html"
         echo ""
 
-        echo "Running script '$script'..."
-        echo "<pre>$("$SCRIPT_HOME/$script" 2>&1)</pre>"
+        echo "<p>Running script "$script"...</p>"
+        echo "<pre>$("$CONTROLSCRIPT_PATH/$script" 2>&1)</pre>"
         ;;
       disable)
-        rm "/etc/autostart/$script"
+        rm "${CONFIG_PATH}/autostart/$script"
         echo "Content-type: application/json"
         echo ""
         echo "{\"status\": \"ok\"}"
@@ -26,14 +28,15 @@ if [ -n "$F_script" ]; then
         echo "Content-type: text/html"
         echo ""
         status='unknown'
-        echo "Stopping script '$script'..."
+        echo "<p>Stopping script "$script"...</p>"
         echo "<pre>"
-        "$SCRIPT_HOME/$script" stop 2>&1 && echo "OK" || echo "NOK"
+        "$CONTROLSCRIPT_PATH/$script" stop 2>&1 && echo "OK" || echo "NOK"
         echo "</pre>"
         ;;
       enable)
-        echo "#!/bin/sh" > "/etc/autostart/$script"
-        echo "$SCRIPT_HOME$script" >> "/etc/autostart/$script"
+        echo "#!/bin/sh" > "${CONFIG_PATH}/autostart/$script"
+        echo ${CONTROLSCRIPT_PATH}/$script >> "${CONFIG_PATH}/autostart/$script"
+        echo "<pre>$(chmod 744 "${CONFIG_PATH}/autostart/$script" 2>&1) </pre>"
         echo "Content-type: application/json"
         echo ""
         echo "{\"status\": \"ok\"}"
@@ -41,8 +44,8 @@ if [ -n "$F_script" ]; then
       view)
         echo "Content-type: text/html"
         echo ""
-        echo "Contents of script '$script':"
-        echo "<pre>$(cat "$SCRIPT_HOME/$script" 2>&1)</pre>"
+        echo "<p>Contents of script "$script":</p>"
+        echo "<pre>$(cat "$CONTROLSCRIPT_PATH/$script" 2>&1)</pre>"
         ;;
       *)
         echo "Content-type: text/html"
@@ -61,10 +64,10 @@ fi
 echo "Content-type: text/html"
 echo ""
 
-if [ ! -d "$SCRIPT_HOME" ]; then
-  echo "<p>No scripts.cgi found in $SCRIPT_HOME</p>"
+if [ ! -d "$CONTROLSCRIPT_PATH" ]; then
+  echo "<p>No scripts.cgi found in $CONTROLSCRIPT_PATH</p>"
 else
-  SCRIPTS=$(ls -A "$SCRIPT_HOME")
+  SCRIPTS=$(ls -A "$CONTROLSCRIPT_PATH")
 
   for i in $SCRIPTS; do
     # Card - start
@@ -72,9 +75,9 @@ else
     # Header
     echo "<header class='card-header'><p class='card-header-title'>"
     # echo "<div class='card-content'>"
-    if [ -x "$SCRIPT_HOME/$i" ]; then
-      if grep -q "^status()" "$SCRIPT_HOME/$i"; then
-        status=$("$SCRIPT_HOME/$i" status)
+    if [ -x "$CONTROLSCRIPT_PATH/$i" ]; then
+      if grep -q "^status()" "$CONTROLSCRIPT_PATH/$i"; then
+        status=$("$CONTROLSCRIPT_PATH/$i" status)
         if [ $? -eq 0 ]; then
           if [ -n "$status" ]; then
             badge="";
@@ -98,7 +101,7 @@ else
 
       # Start / Stop / Run buttons
       echo "<div class='buttons'>"
-      if grep -q "^start()" "$SCRIPT_HOME/$i"; then
+      if grep -q "^start()" "$CONTROLSCRIPT_PATH/$i"; then
         echo "<button data-target='cgi-bin/scripts.cgi?cmd=start&script=$i' class='button is-link script_action_start' data-script='$i' "
         if [ ! -z "$status" ]; then
           echo "disabled"
@@ -109,7 +112,7 @@ else
         echo ">Run</button>"
       fi
 
-      if grep -q "^stop()" "$SCRIPT_HOME/$i"; then
+      if grep -q "^stop()" "$CONTROLSCRIPT_PATH/$i"; then
         echo "<button data-target='cgi-bin/scripts.cgi?cmd=stop&script=$i' class='button is-danger script_action_stop' data-script='$i' "
         if [ ! -n "$status" ]; then
           echo "disabled"
@@ -124,7 +127,7 @@ else
       echo "<input type='checkbox' id='autorun_$i' name='autorun_$i' class='switch is-rtl autostart' data-script='$i' "
         echo " data-unchecked='cgi-bin/scripts.cgi?cmd=disable&script=$i'"
         echo " data-checked='cgi-bin/scripts.cgi?cmd=enable&script=$i'"
-      if [ -f "/etc/autostart/$i" ]; then
+      if [ -f "${CONFIG_PATH}/autostart/$i" ]; then
         echo " checked='checked'"
       fi
       echo "'>"
@@ -140,5 +143,5 @@ else
   done
 fi
 
-script=$(cat /var/www/scripts/scripts.cgi.js)
+script=$(cat ${WWW_PATH}/scripts/scripts.cgi.js)
 echo "<script>$script</script>"

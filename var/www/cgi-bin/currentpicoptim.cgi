@@ -1,5 +1,7 @@
 #!/bin/sh
 
+source /usr/scripts/common_functions.sh
+
 echo "Content-type: image/jpeg"
 echo ""
-getimage |  jpegtran -progressive -optimize
+${SDCARDBIN_PATH}/getimage |  ${SDCARDBIN_PATH}/jpegtran -progressive -optimize

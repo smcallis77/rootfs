@@ -48,6 +48,12 @@ echo 1 > /sys/class/gpio/gpio49/active_low
 
 echo "Initialized gpios" >> $LOGPATH
 
+## Set leds to default startup states:
+ir_led off
+ir_cut on
+yellow_led off
+blue_led on
+
 # Mount the params partition
 mount -t jffs2 /dev/mtdblock9 /params
 
@@ -55,10 +61,14 @@ KERNEL_VERSION=$(uname -r)
 
 # Start Network:
 MAC=$(grep MAC < /params/config/.product_config | cut -c16-27 | sed 's/\(..\)/\1:/g;s/:$//')
-# insmod /lib/modules/$KERNEL_VERSION/rtl8189es.ko rtw_initmac="$MAC" # Uncomment for Dafang
+insmod /lib/modules/$KERNEL_VERSION/rtl8189es.ko rtw_initmac="$MAC" # Uncomment for Dafang
 # insmod /lib/modules/$KERNEL_VERSION/rtl8189fs.ko rtw_initmac="$MAC" # Uncomment for XiaoFang s1 && Wyzecam V2
 # insmod /lib/modules/$KERNEL_VERSION/mt7601Usta.ko # Uncomment for Sannce
 
+
+# Clear (remove) all old PID files in var/run
+
+rm ${RUN_PATH}/*.pid
 
 if [ ! -f /etc/wpa_supplicant.conf ]; then
   echo "Warning: You have to configure wpa_supplicant in order to use wifi. Please see /etc/wpa_supplicant.conf.dist for further instructions."
@@ -116,7 +126,9 @@ else
   insmod /lib/modules/$KERNEL_VERSION/sensor_jxf23.ko data_interface=2 pwdn_gpio=-1 reset_gpio=18 sensor_gpio_func=0
 fi
 
+# Delay to allow network to settle before starting user applications
 
+/bin/sleep 10
 
 
 
@@ -158,7 +170,8 @@ fi
 
 ## Autostart all enabled services:
 for i in /etc/autostart/*; do
-  $i
+  echo "Starting $i" >> $LOGPATH
+  $i >> $LOGPATH 2>&1
 done
 
 echo "Startup finished!" >> $LOGPATH

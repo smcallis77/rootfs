@@ -41,8 +41,17 @@ if [ -n "$F_cmd" ]; then
     echo $(auto_night_mode status)
     ;;
 
+  auto_night_detection_mode)
+    if [ -f ${CONFIG_PATH}/autonight.conf ];
+      then night_mode=$(cat ${CONFIG_PATH}/autonight.conf);
+    else
+      night_mode="HW";
+    fi
+    echo $night_mode
+    ;;
+
   mqtt_status)
-    if [ -f /run/mqtt-status.pid ];
+    if [ -f ${RUN_PATH}/mqtt-status.pid ];
       then mqtt_status="ON";
     else
       mqtt_status="OFF";
@@ -51,7 +60,7 @@ if [ -n "$F_cmd" ]; then
     ;;
 
   mqtt_control)
-    if [ -f /run/mqtt-control.pid ];
+    if [ -f ${RUN_PATH}/mqtt-control.pid ];
       then mqtt_control="ON";
     else
       mqtt_control="OFF";
@@ -60,7 +69,7 @@ if [ -n "$F_cmd" ]; then
     ;;
 
   sound_on_startup)
-    if [ -f /etc/autostart/sound-on-startup ];
+    if [ -f ${CONFIG_PATH}/autostart/sound-on-startup ];
       then sound_on_startup="ON";
     else
       sound_on_startup="OFF";
@@ -77,16 +86,25 @@ if [ -n "$F_cmd" ]; then
     ;;
 
   motion_mail)
-    . /etc/motion.conf 2> /dev/null
+    . ${CONFIG_PATH}/motion.conf 2> /dev/null
     if [ "$sendemail" == "true" ]; then
       echo "ON"
     else
-        echo "OFF"
+      echo "OFF"
+    fi
+    ;;
+
+  motion_telegram)
+    . ${CONFIG_PATH}/motion.conf 2> /dev/null
+    if [ "$send_telegram" == "true" ]; then
+      echo "ON"
+    else
+      echo "OFF"
     fi
     ;;
 
   motion_led)
-    . /etc/motion.conf 2> /dev/null
+    . ${CONFIG_PATH}/motion.conf 2> /dev/null
     if [ "$motion_trigger_led" == "true" ]; then
       echo "ON"
     else
@@ -95,7 +113,7 @@ if [ -n "$F_cmd" ]; then
     ;;
 
   motion_snapshot)
-    . /etc/motion.conf 2> /dev/null
+    . ${CONFIG_PATH}/motion.conf 2> /dev/null
     if [ "$save_snapshot" == "true" ]; then
       echo "ON"
     else
@@ -104,12 +122,29 @@ if [ -n "$F_cmd" ]; then
     ;;
 
   motion_mqtt)
-    . /etc/motion.conf 2> /dev/null
+    . ${CONFIG_PATH}/motion.conf 2> /dev/null
     if [ "$publish_mqtt_message" == "true" ]; then
       echo "ON"
     else
       echo "OFF"
     fi
+    ;;
+
+  motion_mqtt_snapshot)
+    . ${CONFIG_PATH}/motion.conf 2> /dev/null
+    if [ "$publish_mqtt_snapshot" == "true" ]; then
+      echo "ON"
+    else
+      echo "OFF"
+    fi
+    ;;
+
+  hostname)
+    echo $(hostname);
+    ;;
+
+  version)
+    echo $(cat /.lastCommitDate);
     ;;
 
   *)

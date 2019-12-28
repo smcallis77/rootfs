@@ -3,6 +3,26 @@
 # This file is supposed to bundle some frequently used functions
 # so they can be easily improved in one place and be reused all over the place
 
+# Common paths (means less variations between firmware_mod and the open source version rootfs
+WWW_PATH='/var/www';export WWW_PATH;                      # path to lighttpd files
+SCRIPT_PATH='/usr/scripts';export SCRIPT_PATH;               # path to scripts
+CONTROLSCRIPT_PATH='/usr/controlscripts'; export CONTROLSCRIPT_PATH; # path to control scripts
+LOG_PATH='/var/log'; export LOG_PATH;                      # path to log file directory
+BIN_PATH='/bin'; export BIN_PATH;                             # path to standard binaries
+CONFIG_PATH='/etc'; export CONFIG_PATH;                # path to configuration files
+SDCARDBIN_PATH='/usr/bin';export SDCARDBIN_PATH;                # path to custom binaries
+RUN_PATH='/var/run';export RUN_PATH;                                    # path to run directory for PID files
+
+include () {
+    [[ -f "$1" ]] && source "$1"
+}
+# Set motor range
+MAX_X=2600
+MAX_Y=700
+MIN_X=0
+MIN_Y=0
+STEP=100
+
 # Initialize  gpio pin
 init_gpio(){
   GPIOPIN=$1
@@ -38,10 +58,10 @@ rewrite_config(){
   new_value=$3
 
   # Check if the value exists (without comment), if not add it to the file
-  $(grep -v '^[[:space:]]*#' "$1"  | grep -q "$2")
+  $(grep -v '^[[:space:]]*#' $1  | grep -q $2)
   ret="$?"
-  if [ "$ret" = "1" ] ; then
-      echo "$2=$3" >> "$1"
+  if [ "$ret" == "1" ] ; then
+      echo "$2=$3" >> $1
   else
         sed -i -e "/\\s*#.*/!{/""$cfg_key""=/ s/=.*/=""$new_value""/}" "$cfg_path"
   fi
@@ -51,7 +71,6 @@ rewrite_config(){
 blue_led(){
   case "$1" in
   on)
-    setgpio 38 1
     setgpio 39 0
     ;;
   off)
@@ -75,7 +94,6 @@ yellow_led(){
   case "$1" in
   on)
     setgpio 38 0
-    setgpio 39 1
     ;;
   off)
     setgpio 38 1
@@ -123,17 +141,17 @@ ir_cut(){
     setgpio 26 1
     sleep 1
     setgpio 26 0
-    echo "1" > /run/ircut
+    echo "1" > ${RUN_PATH}/ircut
     ;;
   off)
     setgpio 26 0
     setgpio 25 1
     sleep 1
     setgpio 25 0
-    echo "0" > /run/ircut
+    echo "0" > ${RUN_PATH}/ircut
     ;;
   status)
-    status=$(cat /run/ircut)
+    status=$(cat ${RUN_PATH}/ircut)
     case $status in
       1)
         echo "ON"
@@ -150,40 +168,49 @@ ir_cut(){
 motor(){
   if [ -z "$2" ]
   then
-    steps=100
+    steps=$STEP
   else
     steps=$2
   fi
   case "$1" in
   up)
-    /usr/bin/motor -d u -s "$steps"
+    ${SDCARDBIN_PATH}/motor -d u -s "$steps"
+    update_motor_pos $steps
     ;;
   down)
-    /usr/bin/motor -d d -s "$steps"
+    ${SDCARDBIN_PATH}/motor -d d -s "$steps"
+    update_motor_pos $steps
     ;;
   left)
-    /usr/bin/motor -d l -s "$steps"
+    ${SDCARDBIN_PATH}/motor -d l -s "$steps"
+    update_motor_pos $steps
     ;;
   right)
-    /usr/bin/motor -d r -s "$steps"
+    ${SDCARDBIN_PATH}/motor -d r -s "$steps"
+    update_motor_pos $steps
     ;;
-  vcalibrate)
-    /usr/bin/motor -d v -s "$steps"
-    ;;
-  hcalibrate)
-    /usr/bin/motor -d h -s "$steps"
-    ;;
-  calibrate)
-    /usr/bin/motor -d f -s "$steps"
+  reset_pos_count)
+    ${SDCARDBIN_PATH}/motor -d v -s "$steps"
+    update_motor_pos $steps
     ;;
   status)
     if [ "$2" = "horizontal" ]; then
-        /usr/bin/motor -d u -s 0 | grep "x:" | awk  '{print $2}'
+        ${SDCARDBIN_PATH}/motor -d u -s 0 | grep "x:" | awk  '{print $2}'
     else
-        /usr/bin/motor -d r -s 0 | grep "y:" | awk  '{print $2}'
+        ${SDCARDBIN_PATH}/motor -d u -s 0 | grep "y:" | awk  '{print $2}'
     fi
     ;;
   esac
+
+}
+
+update_motor_pos(){
+  # Waiting for the motor to run.
+  SLEEP_NUM=$(awk -v a="$1" 'BEGIN{printf ("%f",a*1.3/1000)}')
+  sleep ${SLEEP_NUM//-/}
+  # Display AXIS to OSD
+  update_axis
+  ${SDCARDBIN_PATH}/setconf -k o -v "$OSD"
 }
 
 # Read the light sensor
@@ -199,14 +226,14 @@ ldr(){
 http_server(){
   case "$1" in
   on)
-    lighttpd -f /etc/lighttpd.conf
+    ${SDCARDBIN_PATH}/lighttpd -f ${CONFIG_PATH}/lighttpd.conf
     ;;
   off)
     killall lighttpd
     ;;
   restart)
     killall lighttpd
-    lighttpd -f /etc/lighttpd.conf
+    ${SDCARDBIN_PATH}/lighttpd -f ${CONFIG_PATH}/lighttpd.conf
     ;;
   status)
     if pgrep lighttpd &> /dev/null
@@ -225,20 +252,20 @@ http_password(){
   realm="all" # realm is defined in the lightppd.conf
   pass=$1
   hash=$(echo -n "$user:$realm:$pass" | md5sum | cut -b -32)
-  echo "$user:$realm:$hash" > /etc/lighttpd.user
+  echo "$user:$realm:$hash" > ${CONFIG_PATH}/lighttpd.user
 }
 
 # Control the RTSP h264 server
 rtsp_h264_server(){
   case "$1" in
   on)
-    /usr/controlscripts/rtsp-h264 start
+    ${CONTROLSCRIPT_PATH}/rtsp-h264 start
     ;;
   off)
-    /usr/controlscripts/rtsp-h264 stop
+    ${CONTROLSCRIPT_PATH}/rtsp-h264 stop
     ;;
   status)
-    if /usr/controlscripts/rtsp-h264 status | grep -q "PID"
+    if ${CONTROLSCRIPT_PATH}/rtsp-h264 status | grep -q "PID"
       then
         echo "ON"
     else
@@ -252,13 +279,13 @@ rtsp_h264_server(){
 rtsp_mjpeg_server(){
   case "$1" in
   on)
-    /usr/controlscripts/rtsp-mjpeg start
+    ${CONTROLSCRIPT_PATH}/rtsp-mjpeg start
     ;;
   off)
-    /usr/controlscripts/rtsp-mjpeg stop
+    ${CONTROLSCRIPT_PATH}/rtsp-mjpeg stop
     ;;
   status)
-    if /usr/controlscripts/rtsp-mjpeg status | grep -q "PID"
+    if ${CONTROLSCRIPT_PATH}/rtsp-mjpeg status | grep -q "PID"
     then
         echo "ON"
     else
@@ -272,13 +299,13 @@ rtsp_mjpeg_server(){
 motion_detection(){
   case "$1" in
   on)
-    setconf -k m -v 4
+    ${SDCARDBIN_PATH}/setconf -k m -v 4
     ;;
   off)
-    setconf -k m -v -1
+    ${SDCARDBIN_PATH}/setconf -k m -v -1
     ;;
   status)
-    status=$(setconf -g m 2>/dev/null)
+    status=$(${SDCARDBIN_PATH}/setconf -g m 2>/dev/null)
     case $status in
       -1)
         echo "OFF"
@@ -290,17 +317,61 @@ motion_detection(){
   esac
 }
 
+# Control the motion detection mail function
+motion_send_mail(){
+  case "$1" in
+  on)
+    rewrite_config ${CONFIG_PATH}/motion.conf send_email "true"
+    ;;
+  off)
+    rewrite_config ${CONFIG_PATH}/motion.conf send_email "false"
+    ;;
+  status)
+    status=$(awk '/send_email/' ${CONFIG_PATH}/motion.conf |cut -f2 -d \=)
+    case $status in
+      false)
+        echo "OFF"
+        ;;
+      true)
+        echo "ON"
+        ;;
+    esac
+  esac
+}
+
+# Control the motion detection Telegram function
+motion_send_telegram(){
+  case "$1" in
+  on)
+    rewrite_config ${CONFIG_PATH}/motion.conf send_telegram "true"
+    ;;
+  off)
+    rewrite_config ${CONFIG_PATH}/motion.conf send_telegram "false"
+    ;;
+  status)
+    status=$(awk '/send_telegram/' ${CONFIG_PATH}/motion.conf |cut -f2 -d \=)
+    case $status in
+      true)
+        echo "ON"
+        ;;
+      *)
+        echo "OFF"
+        ;;
+    esac
+  esac
+}
+
 # Control the motion tracking function
 motion_tracking(){
   case "$1" in
   on)
-    setconf -k t -v on
+    ${SDCARDBIN_PATH}/setconf -k t -v on
     ;;
   off)
-    setconf -k t -v off
+    ${SDCARDBIN_PATH}/setconf -k t -v off
     ;;
   status)
-    status=$(setconf -g t 2>/dev/null)
+    status=$(${SDCARDBIN_PATH}/setconf -g t 2>/dev/null)
     case $status in
       true)
         echo "ON"
@@ -316,17 +387,17 @@ motion_tracking(){
 night_mode(){
   case "$1" in
   on)
+    ${SDCARDBIN_PATH}/setconf -k n -v 1
     ir_led on
     ir_cut off
-    setconf -k n -v 1
     ;;
   off)
     ir_led off
     ir_cut on
-    setconf -k n -v 0
+    ${SDCARDBIN_PATH}/setconf -k n -v 0
     ;;
   status)
-    status=$(setconf -g n)
+    status=$(${SDCARDBIN_PATH}/setconf -g n)
     case $status in
       0)
         echo "OFF"
@@ -342,13 +413,13 @@ night_mode(){
 auto_night_mode(){
   case "$1" in
     on)
-      /usr/controlscripts/auto-night-detection start
+      ${CONTROLSCRIPT_PATH}/auto-night-detection start
       ;;
     off)
-      /usr/controlscripts/auto-night-detection stop
+      ${CONTROLSCRIPT_PATH}/auto-night-detection stop
       ;;
     status)
-      if [ -f /run/auto-night-detection.pid ]; then
+      if [ -f /${RUN_PATH}/auto-night-detection.pid ]; then
         echo "ON";
       else
         echo "OFF"
@@ -356,11 +427,28 @@ auto_night_mode(){
   esac
 }
 
+# Take a snapshot
+snapshot(){
+    filename="/tmp/snapshot.jpg"
+    ${SDCARDBIN_PATH}/getimage > "$filename" &
+    sleep 1
+}
+
 # Update axis
 update_axis(){
-  . /etc/osd.conf > /dev/null 2>/dev/null
-  AXIS=$(motor -d s | sed '3d' | awk '{printf ("%s ",$0)}' | awk '{print "X="$2,"Y="$4}')
-  if [ "$DISPLAY_AXIS" = "true" ]; then
+  . ${CONFIG_PATH}/osd.conf > /dev/null 2>/dev/null
+  AXIS=$(${SDCARDBIN_PATH}/motor -d s | sed '3d' | awk '{printf ("%s ",$0)}' | awk '{print "X="$2,"Y="$4}')
+  if [ "$DISPLAY_AXIS" == "true" ]; then
     OSD="${OSD} ${AXIS}"
   fi
+}
+
+# Reboot the System
+reboot_system() {
+  /sbin/reboot
+}
+
+# Re-Mount the SD Card
+remount_sdcard() {
+  mount -o remount,rw /system/sdcard
 }

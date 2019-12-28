@@ -1,6 +1,9 @@
 #!/bin/sh
-PIDFILE="/run/auto-night-detection.pid"
-CONF_FILE="/etc/autonight.conf"
+
+. /usr/scripts/common_functions.sh
+
+PIDFILE="${RUN_PATH}/auto-night-detection.pid"
+CONF_FILE="${CONFIG_PATH}/autonight.conf"
 
 status()
 {

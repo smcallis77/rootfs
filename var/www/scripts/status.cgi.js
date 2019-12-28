@@ -105,7 +105,8 @@ $(document).ready(function() {
       'AXISenable': axisenable,
       'osdtext': $('input[name=osdtext]').val(),
       'color': $('select[name=color]').val(),
-      'size': $('select[name=size]').val(),
+      'OSDSize': $('input[name=OSDSize]').val(),
+      'fontName': $('select[name=FontName]').val(),
       'spacepixels': $('input[name=spacepixels]').val(),
       'posy': $('input[name=posy]').val(),
       'fixedw': $('select[name=fixedw]').val()
@@ -234,4 +235,17 @@ $(document).ready(function() {
       event.preventDefault();
     });
 
+    $('#flip').change(function() {
+        if($(this).is(":checked")) {
+           // if checked
+           $.ajax({
+            'url': 'cgi-bin/action.cgi?cmd=flip-on',
+           })
+        }  else {
+            $.ajax({
+                'url': 'cgi-bin/action.cgi?cmd=flip-off',
+            })
+        }
+    });
 });
+

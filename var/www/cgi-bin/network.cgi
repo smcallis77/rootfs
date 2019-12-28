@@ -4,7 +4,12 @@ echo "Content-type: text/html"
 echo "Pragma: no-cache"
 echo "Cache-Control: max-age=0, no-store, no-cache"
 echo ""
-source ./func.cgi
+
+source /usr/scripts/common_functions.sh
+
+source ${WWW_PATH}/cgi-bin/func.cgi
+if [ -e "/etc/fang_hacks.cfg" ]; then source /etc/fang_hacks.cfg; fi
+PATH="/bin:/sbin:/usr/bin:${BIN_PATH}"
 
 cat << EOF
 Information:
@@ -14,3 +19,5 @@ Information:
 </body>
 </html>
 EOF
+
+

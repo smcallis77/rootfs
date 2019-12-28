@@ -1,5 +1,8 @@
 #!/bin/sh
-PIDFILE="/run/mqtt-control.pid"
+
+. /usr/scripts/common_functions.sh
+
+PIDFILE="${RUN_PATH}/mqtt-control.pid"
 
 if [ ! -f /etc/mqtt.conf ]; then
   echo "You have to configure mqtt first. Please see /etc/mqtt.conf.dist for further instructions"
@@ -26,7 +29,7 @@ start()
       /usr/scripts/mqtt-autodiscovery.sh
     fi
     echo "Starting MQTT - Control"
-    busybox nohup /usr/scripts/mqtt-control.sh &>/dev/null &
+    busybox nohup /usr/scripts/mqtt-control.sh &>/tmp/mqtt.log &
     echo "$!" > "$PIDFILE"
   fi
 }

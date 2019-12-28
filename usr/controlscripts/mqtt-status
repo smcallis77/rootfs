@@ -1,5 +1,8 @@
 #!/bin/sh
-PIDFILE="/run/mqtt-status.pid"
+
+. /usr/scripts/common_functions.sh
+
+PIDFILE="${RUN_PATH}/mqtt-status.pid"
 
 if [ ! -f /etc/mqtt.conf ]; then
   echo "You have to configure mqtt first. Please see /etc/mqtt.conf.dist for further instructions"

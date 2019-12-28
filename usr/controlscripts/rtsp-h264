@@ -84,8 +84,8 @@ start()
     fi
 
     echo "================== START ===============" >> "$LOGPATH"
-    echo "v4l2rtspserver-master $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT" >> "$LOGPATH"
-    v4l2rtspserver-master $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT 2>> "$LOGPATH" >> "$LOGPATH" &
+    echo "v4l2rtspserver-master -a $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT" >> "$LOGPATH"
+    v4l2rtspserver-master -a $RTSPH264OPTS $AUDIOPARAM $VIDEOFORMAT $CREDENTIAL $PORT 2>> "$LOGPATH" >> "$LOGPATH" &
     echo "$!" > "$PIDFILE"
   fi
 }

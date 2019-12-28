@@ -1,34 +1,37 @@
 #!/bin/sh
+
+source /usr/scripts/common_functions.sh
+
 echo "Content-type: application/json"
 echo "Pragma: no-cache"
 echo "Cache-Control: max-age=0, no-store, no-cache"
 echo
 
-motion_indicator_color=`setconf -g z 2>/dev/null`
+motion_indicator_color=`${SDCARDBIN_PATH}/setconf -g z 2>/dev/null`
 if [ "${motion_indicator_color}X" == "X" ]
 then
     motion_indicator_color="0"
 fi
 
-motion_sensitivity=`setconf -g m 2>/dev/null`
+motion_sensitivity=`${SDCARDBIN_PATH}/setconf -g m 2>/dev/null`
 if [ "${motion_sensitivity}X" == "X" ]
 then
     motion_sensitivity="0"
 fi
 
-region_of_interest=`setconf -g r 2>/dev/null`
+region_of_interest=`${SDCARDBIN_PATH}/setconf -g r 2>/dev/null`
 if [ "${region_of_interest}X" == "X" ]
 then
     region_of_interest="0,0,0,0"
 fi
 
-motion_tracking=`setconf -g t 2>/dev/null`
+motion_tracking=`${SDCARDBIN_PATH}/setconf -g t 2>/dev/null`
 if [ "${motion_tracking}X" == "X" ]
 then
     motion_tracking=false
 fi
 
-motion_timeout=`setconf -g u 2>/dev/null`
+motion_timeout=`${SDCARDBIN_PATH}/setconf -g u 2>/dev/null`
 if [ "${motion_timeout}X" == "X" ]
 then
     motion_timeout=60

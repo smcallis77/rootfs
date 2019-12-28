@@ -1,5 +1,7 @@
 #!/bin/sh
 
+source /usr/scripts/common_functions.sh
+
 echo "Content-type: image/jpeg"
 echo ""
-/usr/bin/getimage
+${SDCARDBIN_PATH}/getimage
