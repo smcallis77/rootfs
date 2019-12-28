@@ -73,10 +73,12 @@ rm ${RUN_PATH}/*.pid
 if [ ! -f /etc/wpa_supplicant.conf ]; then
   echo "Warning: You have to configure wpa_supplicant in order to use wifi. Please see /etc/wpa_supplicant.conf.dist for further instructions."
 else
-  wpa_supplicant_status="$(wpa_supplicant -d -B -i wlan0 -c /etc/wpa_supplicant.conf -P /var/run/wpa_supplicant.pid)"
-  echo "wpa_supplicant: $wpa_supplicant_status" >> $LOGPATH
-  udhcpc_status=$(udhcpc -i wlan0 -p /var/run/udhcpc.pid -s /etc/udhcpc.script -b -x hostname:"$(hostname)")
-  echo "udhcpc: $udhcpc_status" >> $LOGPATH
+  wpa_supplicant -d -B -i wlan0 -c /etc/wpa_supplicant.conf -P /var/run/wpa_supplicant.pid >> $LOGPATH 2>&1
+  udhcpc -v -t 24 -T 5 -A 60 -i wlan0 -p /var/run/udhcpc.pid -s /etc/udhcpc.script -b -x hostname:"$(hostname)" >> $LOGPATH 2>&1
+#  wpa_supplicant_status="$(wpa_supplicant -d -B -i wlan0 -c /etc/wpa_supplicant.conf -P /var/run/wpa_supplicant.pid)"
+#  echo "wpa_supplicant: $wpa_supplicant_status" >> $LOGPATH
+#  udhcpc_status=$(udhcpc -i wlan0 -p /var/run/udhcpc.pid -s /etc/udhcpc.script -b -x hostname:"$(hostname)")
+#  echo "udhcpc: $udhcpc_status" >> $LOGPATH
 fi
 
 ## Sync the via NTP:
@@ -128,7 +130,12 @@ fi
 
 # Delay to allow network to settle before starting user applications
 
-/bin/sleep 10
+date >> $LOGPATH 2>&1
+/bin/sleep 60 >>$LOGPATH 2>&1
+date >> $LOGPATH 2>&1
+
+# Do a test ping to confirm network is available right now
+/bin/ping -c 1 ha.smcallister.org >> $LOGPATH 2>&1
 
 
 
